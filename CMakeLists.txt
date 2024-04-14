@@ -1,26 +1,14 @@
-set(lib_name pico_pio_usb)
-add_library(${lib_name} INTERFACE)
 
-set(dir ${CMAKE_CURRENT_LIST_DIR}/src)
+cmake_minimum_required(VERSION 3.13)
+include (pico_sdk_import.cmake)
+project(pio_usb)
 
-pico_generate_pio_header(${lib_name} ${dir}/usb_tx.pio)
-pico_generate_pio_header(${lib_name} ${dir}/usb_rx.pio)
+pico_sdk_init()
 
-target_sources(${lib_name} INTERFACE
-    ${dir}/pio_usb.c
-    ${dir}/pio_usb_device.c
-    ${dir}/pio_usb_host.c
-    ${dir}/usb_crc.c
-)
+# add pico-pio-usb library for examples
+set(PICO_PIO_USB_DIR "${CMAKE_CURRENT_LIST_DIR}/pico-pio-usb/")
+# the second argument to add_subdirectory is needed here because this isn't
+# a subdirectory, it's out of tree.
+add_subdirectory(${PICO_PIO_USB_DIR} pico_pio_usb)
 
-target_link_libraries(${lib_name} INTERFACE
-    pico_stdlib
-    pico_multicore
-    hardware_pio
-    hardware_dma
-)
-
-target_include_directories(${lib_name} INTERFACE ${dir})
-
-# enable all warnings
-target_compile_options(${lib_name} INTERFACE -Wall -Wextra)
+add_subdirectory(capture_hid_report)
