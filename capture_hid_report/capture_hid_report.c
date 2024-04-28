@@ -2,10 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "pico/stdlib.h"
-#include "pico/multicore.h"
 #include "pico/bootrom.h"
-
+#include "pico/multicore.h"
+#include "pico/stdlib.h"
 #include "pio_usb.h"
 
 static usb_device_t *usb_device = NULL;
@@ -15,7 +14,7 @@ void core1_main() {
 
   // To run USB SOF interrupt in core1, create alarm pool in core1.
   static pio_usb_configuration_t config = PIO_USB_DEFAULT_CONFIG;
-  config.alarm_pool = (void*)alarm_pool_create(2, 1);
+  config.alarm_pool = (void *)alarm_pool_create(2, 1);
   usb_device = pio_usb_host_init(&config);
 
   //// Call pio_usb_host_add_port to use multi port
