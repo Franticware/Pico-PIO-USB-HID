@@ -5,6 +5,7 @@ pico_enable_stdio_usb(${target_name} 1)
 
 target_sources(${target_name} PRIVATE
  capture_hid_report.c
+ parsemouse.c
  )
 
 # print memory usage, enable all warnings

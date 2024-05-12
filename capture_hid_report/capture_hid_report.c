@@ -2,12 +2,52 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "parsemouse.h"
 #include "pico/bootrom.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "pio_usb.h"
 
 static usb_device_t *usb_device = NULL;
+
+static bool mouseReady = false;
+static bool mouseEP_Pending = false;
+static MouseConf mouseConf;
+static uint8_t mouseAddress = 0;
+static uint8_t mouseEP = 0;
+
+void cb_hid_descriptor(uint8_t address, uint16_t length,
+                       const volatile uint8_t *data) {
+  printf("%02x | Report descriptor:", address);
+  for (int i = 0; i < length; i++) {
+    printf(" %02x", data[i]);
+  }
+  printf("\n");
+  MouseConf mouseConfTmp;
+  parseMouseDescr(data, length, &mouseConfTmp);
+  if (mouseConfTmp.xI != 255 && mouseConfTmp.yI != 255) {
+    mouseEP_Pending = true;
+    mouseAddress = address;
+    mouseConf = mouseConfTmp;
+  }
+  stdio_flush();
+}
+
+void cb_hid_epaddr(uint8_t address, uint8_t epaddr) {
+  printf("%02x | EP 0x%02x\n", address, epaddr);
+  if (mouseEP_Pending && mouseAddress == address) {
+    mouseEP_Pending = false;
+    mouseReady = true;
+    mouseEP = epaddr;
+  }
+}
+
+void cb_disconnect(uint8_t address) {
+  if (mouseAddress == address) {
+    printf("%02x | Disconnect\n", address);
+    mouseReady = false;
+  }
+}
 
 void core1_main() {
   sleep_ms(10);
@@ -23,23 +63,7 @@ void core1_main() {
 
   while (true) {
     pio_usb_host_task();
-  }
-}
 
-int main() {
-  // default 125MHz is not appropreate. Sysclock should be multiple of 12MHz.
-  set_sys_clock_khz(120000, true);
-
-  stdio_init_all();
-  printf("hello!");
-
-  sleep_ms(10);
-
-  multicore_reset_core1();
-  // all USB task run in core1
-  multicore_launch_core1(core1_main);
-
-  while (true) {
     if (usb_device != NULL) {
       for (int dev_idx = 0; dev_idx < PIO_USB_DEVICE_CNT; dev_idx++) {
         usb_device_t *device = &usb_device[dev_idx];
@@ -59,17 +83,40 @@ int main() {
           int len = pio_usb_get_in_data(ep, temp, sizeof(temp));
 
           if (len > 0) {
-            printf("%04x:%04x EP 0x%02x:\t", device->vid, device->pid,
-                   ep->ep_num);
+            printf("%02x | EP 0x%02x:", device->address, ep->ep_num);
             for (int i = 0; i < len; i++) {
-              printf("%02x ", temp[i]);
+              printf(" %02x", temp[i]);
             }
             printf("\n");
+            if (mouseReady && device->address == mouseAddress &&
+                ep->ep_num == mouseEP) {
+              uint32_t o;
+              if (parseMouseData(temp, len, &mouseConf, &o) == 0) {
+                printf("%08lx\n", o);
+              }
+            }
           }
         }
       }
     }
     stdio_flush();
+  }
+}
+
+int main() {
+  // default 125MHz is not appropreate. Sysclock should be multiple of 12MHz.
+  set_sys_clock_khz(120000, true);
+
+  stdio_init_all();
+
+  sleep_ms(10);
+
+  multicore_reset_core1();
+  // all USB task run in core1
+  multicore_launch_core1(core1_main);
+
+  while (true) {
+
     sleep_us(10);
   }
 }

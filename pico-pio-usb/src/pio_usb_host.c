@@ -31,6 +31,11 @@ static __unused uint32_t int_stat;
 
 static bool sof_timer(repeating_timer_t *_rt);
 
+
+void cb_hid_descriptor(uint8_t address, uint16_t length, const volatile uint8_t *data);
+void cb_hid_epaddr(uint8_t address, uint8_t epaddr);
+void cb_disconnect(uint8_t address);
+
 //--------------------------------------------------------------------+
 // Application API
 //--------------------------------------------------------------------+
@@ -954,9 +959,11 @@ static int enumerate_device(usb_device_t *device, uint8_t address) {
       case DESC_TYPE_ENDPOINT: {
         const endpoint_descriptor_t *d =
             (const endpoint_descriptor_t *)descriptor;
-        printf("\t\t\tepaddr:0x%02x, attr:%d, size:%d, interval:%d\n",
+        /*printf("\t\t\tepaddr:0x%02x, attr:%d, size:%d, interval:%d\n",
                d->epaddr, d->attr, d->max_size[0] | (d->max_size[1] << 8),
-               d->interval);
+               d->interval);*/
+
+        cb_hid_epaddr(address, d->epaddr);
 
         if ((class == CLASS_HID || class == CLASS_HUB) &&
             d->attr == EP_ATTR_INTERRUPT) {
@@ -986,14 +993,15 @@ static int enumerate_device(usb_device_t *device, uint8_t address) {
             printf("No empty EP\n");
           }
         }
+        stdio_flush();
       } break;
       case DESC_TYPE_HID: {
         const hid_descriptor_t *d = (const hid_descriptor_t *)descriptor;
-        printf(
+        /*printf(
             "\tbcdHID:%x.%x, country:%d, desc num:%d, desc_type:%d, "
             "desc_size:%d\n",
             d->bcd_hid[1], d->bcd_hid[0], d->contry_code, d->num_desc,
-            d->desc_type, d->desc_len[0] | (d->desc_len[1] << 8));
+            d->desc_type, d->desc_len[0] | (d->desc_len[1] << 8));*/
 
         usb_setup_packet_t set_hid_idle_request = SET_HID_IDLE_REQ_DEFAULT;
         set_hid_idle_request.value_lsb = interface;
@@ -1011,12 +1019,17 @@ static int enumerate_device(usb_device_t *device, uint8_t address) {
         control_in_protocol(
             device, (uint8_t *)&get_hid_report_descrpitor_request,
             sizeof(get_hid_report_descrpitor_request), rx_buffer, desc_len);
+
+        cb_hid_descriptor(address, desc_len, device->control_pipe.rx_buffer);
+
+        /*printf("\t\t==%02x %02x\n", d);
+
         printf("\t\tReport descriptor:");
         for (int i = 0; i < desc_len; i++) {
           printf("%02x ", device->control_pipe.rx_buffer[i]);
         }
         printf("\n");
-        stdio_flush();
+        stdio_flush();*/
 
       } break;
       default:
@@ -1044,7 +1057,8 @@ static int enumerate_device(usb_device_t *device, uint8_t address) {
 }
 
 static void device_disconnect(usb_device_t *device) {
-  printf("Disconnect device %d\n", device->address);
+  /*printf("Disconnect device %d\n", device->address);*/
+  cb_disconnect(device->address);
   for (int port = 0; port < PIO_USB_HUB_PORT_CNT; port++) {
     if (device->child_devices[port] != 0) {
       device_disconnect(&pio_usb_device[device->child_devices[port]]);
