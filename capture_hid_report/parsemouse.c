@@ -293,18 +293,17 @@ void parseMouseDescr(const volatile uint8_t *hid, uint32_t hidlen,
 }
 
 int parseMouseData(const uint8_t *data, uint32_t dataLen, const MouseConf *conf,
-                   uint32_t *o) {
-  *o = 0;
+                   int8_t o[4]) {
   const int ok = 0;
   const int err = 1;
+  o[0] = o[1] = o[2] = o[3] = 0;
   if (conf->isId && conf->id != data[0]) {
     return err;
   }
   if ((uint32_t)(conf->btnI + 1) > dataLen) {
     return err;
   }
-  uint8_t odata[4] = {0};
-  odata[0] = data[conf->btnI];
+  o[0] = data[conf->btnI];
   for (uint32_t i = 0; i != 3; ++i) {
     uint8_t aI = 0;
     uint8_t aSize = 0;
@@ -324,21 +323,19 @@ int parseMouseData(const uint8_t *data, uint32_t dataLen, const MouseConf *conf,
       break;
     }
     if ((uint32_t)aI + (uint32_t)aSize <= dataLen) {
-      int16_t a = 0;
       if (aSize == 1) {
-        a = (int8_t)data[aI];
+        o[i + 1] = data[aI];
       } else if (aSize == 2) {
-        a = (int16_t)(((uint16_t)data[aI]) | (((uint16_t)data[aI + 1]) << 8));
+        int16_t a = (int16_t)(((uint16_t)data[aI]) | (((uint16_t)data[aI + 1]) << 8));
         if (a < -128)
           a = 128;
         if (a > 127)
           a = 127;
+        o[i + 1] = a;
       } else {
         return err;
       }
-      odata[i + 1] = a;
     }
   }
-  *o = *(const uint32_t *)odata;
   return ok;
 }

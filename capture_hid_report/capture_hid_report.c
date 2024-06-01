@@ -90,9 +90,9 @@ void core1_main() {
             printf("\n");
             if (mouseReady && device->address == mouseAddress &&
                 ep->ep_num == mouseEP) {
-              uint32_t o;
-              if (parseMouseData(temp, len, &mouseConf, &o) == 0) {
-                printf("%08lx\n", o);
+              int8_t o[4];
+              if (parseMouseData(temp, len, &mouseConf, o) == 0) {
+                printf("%02x %02x %02x %02x\n", (uint8_t)o[0], (uint8_t)o[1], (uint8_t)o[2], (uint8_t)o[3]);
               }
             }
           }
@@ -100,6 +100,14 @@ void core1_main() {
       }
     }
     stdio_flush();
+  }
+}
+
+void core0_main()
+{
+  while (true) {
+
+    sleep_us(10);
   }
 }
 
@@ -115,8 +123,5 @@ int main() {
   // all USB task run in core1
   multicore_launch_core1(core1_main);
 
-  while (true) {
-
-    sleep_us(10);
-  }
+  core0_main();
 }

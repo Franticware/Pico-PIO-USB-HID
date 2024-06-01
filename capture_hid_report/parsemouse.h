@@ -18,6 +18,6 @@ typedef struct {
 void parseMouseDescr(const volatile uint8_t *descr, uint32_t descrLen,
                      MouseConf *conf);
 int parseMouseData(const uint8_t *data, uint32_t dataLen, const MouseConf *conf,
-                   uint32_t *o);
+                   int8_t o[4]);
 
 #endif // PARSEMOUSE_H
