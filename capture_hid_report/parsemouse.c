@@ -284,7 +284,9 @@ int16_t extractBits(const uint8_t *data, uint32_t dataLen, uint8_t aI,
   uint8_t bI = aI >> 3;
   uint8_t mI = aI & 7;
   for (uint32_t i = 0; i != 3; ++i) {
-    ret32 |= ((uint32_t)data[i + bI]) << (i * 8);
+    if (i + bI < dataLen) {
+      ret32 |= ((uint32_t)data[i + bI]) << (i * 8);
+    }
   }
   ret32 = ret32 >> mI;
   uint16_t ret16 = (uint16_t)ret32;
