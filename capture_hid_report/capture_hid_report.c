@@ -92,7 +92,8 @@ void core1_main() {
                 ep->ep_num == mouseEP) {
               int8_t o[4];
               if (parseMouseData(temp, len, &mouseConf, o) == 0) {
-                printf("%02x %02x %02x %02x\n", (uint8_t)o[0], (uint8_t)o[1], (uint8_t)o[2], (uint8_t)o[3]);
+                printf("%02x %02x %02x %02x\n", (uint8_t)o[0], (uint8_t)o[1],
+                       (uint8_t)o[2], (uint8_t)o[3]);
               }
             }
           }
@@ -103,8 +104,7 @@ void core1_main() {
   }
 }
 
-void core0_main()
-{
+void core0_main() {
   while (true) {
 
     sleep_us(10);
